@@ -4,7 +4,7 @@ clean:
 
 install: clean
 	mkdir ./build
-	cd build && gcc ../main.c ../test_front.c ../backend.c -o program -lncurses
+	cd build && gcc -I.. ../gui/cli/main.c ../backend.c -o program -lncurses
 
 start: install
 	./build/program

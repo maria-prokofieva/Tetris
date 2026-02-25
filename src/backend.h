@@ -16,6 +16,7 @@
 #include <ncurses.h>
 #include <time.h>
 #include <unistd.h>
+#include "common.h"
 
 
 // #define PAUSE 'p'
@@ -35,9 +36,10 @@ typedef struct { // ИНФО ТЕКУЩАЯ ФИГУРА
   int y;
   int** temp_matrix;
   Figures_t current_type;
-} FigureInfo_t;
+}FigureInfo_t;
 
 typedef enum{ // СОСТОЯНИЯ ИГРЫ
+    Waiting,
     Initial,
     Spawn,
     Moving, 
@@ -47,36 +49,24 @@ typedef enum{ // СОСТОЯНИЯ ИГРЫ
     GameOver
 }GameState_t;
 
-typedef struct { // ОБЩАЯ ИНФОРМАЦИЯ ПО ИГРЕ
-  int **field; // игровое поле
-  int **next; // следующая фигура 
-  int score; // Текущий счёт
-  int high_score; //рекорд
-  int level; // Текущий уровень
-  int speed; // Скорость игры
-  int pause; // флаг паузы
-  GameState_t* state; 
-  FigureInfo_t *figure;
-} GameInfo_t;
 
+ typedef enum {
+    MoveDownOk,
+    MoveDownCollision
+ } MoveResult_t;
 
+typedef struct {
+  struct timespec last_tick;
+  struct timespec now;
+  long time_interval;
+  int tick_time;
+} Timer_t;
 
-
-
-
-
-typedef enum { // ДЕЙСТВИЯ ИГРОКА
-  Start,
-  Pause,
-  Terminate,
-  Left,
-  Right,
-  Up, // не используется здесь
-  Down,
-  Action
-} UserAction_t;
-
- 
+typedef struct {
+  GameInfo_t* game;
+  GameState_t current_state;
+  FigureInfo_t* figure;
+} MainGameState_t;
 
 
 
@@ -95,28 +85,22 @@ typedef enum { // ДЕЙСТВИЯ ИГРОКА
 
 
 
-// void InitGame(GameInfo_t* game_parameters){
-//     game_parameters->field = InitMatrix(FIELD_HEIGHT, FIELD_WIDTH);
-// }
-
-
 GameInfo_t* GetGameInfo();
-void InitGameInfo(GameInfo_t* game);
-
-void InitFigure(FigureInfo_t* figure);
-void GenerateNewFigure(FigureInfo_t* figure, GameInfo_t* game);
+void InitGameInfoIfNeed(MainGameState_t* game_state); 
+void InitFigureIfNeed(MainGameState_t* game_state);
+//GameState_t* Initstate();
+void GenerateNewFigure(MainGameState_t *game_state);
 void GenerateTetromino(int random_num, FigureInfo_t* figure);
 void GenerateHero(int** current_figure);
 void GenerateSmashboy(int** current_figure);
-
-int MoveDown(GameInfo_t *game);
-void AddFigureToField(GameInfo_t* game, int** matrix);
-void ClearFigureFromGameField(GameInfo_t *game, int** matrix);
-int CheckCollision(GameInfo_t* game, int** matrix);
-void MoveRight(GameInfo_t* game);
-void MoveLeft(GameInfo_t* game);
-int CheckRightSide(GameInfo_t* game);
-int CheckLeftSide(GameInfo_t* game);
+int MoveDown(GameInfo_t *game, FigureInfo_t* figure);
+void AddFigureToField(GameInfo_t* game, int** matrix, FigureInfo_t* figure);
+void ClearFigureFromGameField(GameInfo_t *game, FigureInfo_t *figure);
+int CheckCollision(GameInfo_t* game, int** matrix, FigureInfo_t* figure);
+void MoveRight(GameInfo_t* game, FigureInfo_t* figure);
+void MoveLeft(GameInfo_t* game, FigureInfo_t* figure);
+int CheckRightSide(GameInfo_t* game, FigureInfo_t* figure);
+int CheckLeftSide(GameInfo_t* game, FigureInfo_t* figure);
 
 void UpdateCurrentFigure(FigureInfo_t* figure);
 
@@ -133,7 +117,9 @@ void PrintField(GameInfo_t* game);
 void GenerateSmashboy(int** current_figure);
 int CheckLeftCollision(FigureInfo_t* figure, GameInfo_t* game);
 
+void TetrisFsm(MainGameState_t *game_state);
 
 
+int RotateFigure(GameInfo_t* game, FigureInfo_t* figure, int** matrix);
 
-int IsRotates(GameInfo_t* game, int** matrix);
+

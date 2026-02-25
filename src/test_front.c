@@ -19,12 +19,6 @@
 
 
 
-WINDOW* InitGameFieldFront(){
-    WINDOW *win = newwin(GAME_WIN_HEIGHT, GAME_WIN_WIDTH, 0, 0);
-    box(win, 0, 0);
-    refresh();
-    return win;
-}
 
 
 
@@ -55,21 +49,7 @@ WINDOW* InitGameFieldFront(){
 //     endwin();
 // }
 
-void PrintGameFieldFront(GameInfo_t *game, WINDOW* game_win){ 
-    for(int i = 0; i < FIELD_HEIGHT; i++) {
-        for(int j = 0; j < FIELD_WIDTH; j++) {
-            int width = j * CELL_SIZE + FRAME_LINE;
-            int height = i + FRAME_LINE;
-            if(game->field[i][j] == 1) {
-                mvwprintw(game_win, height, width, "[ ]");     
-                // mvwprintw(game_win, height, width, "%d,%d", i, j);    
-            } else {
-                mvwprintw(game_win, height, width, "   ");          
-            }                        
-        }
-    }  
-    wrefresh(game_win);
-}
+
 
 
 
