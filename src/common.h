@@ -26,4 +26,6 @@ typedef struct {
 GameInfo_t updateCurrentState();
 void userInput(UserAction_t action, bool hold);
 
+void EndGame();
+
 #endif

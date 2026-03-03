@@ -7,8 +7,6 @@ MainGameState_t* GetMainGameInfo() {
 }
 
 void userInput(UserAction_t action, bool hold){
-    //GameInfo_t *game = updateCurrentState();
-    //printf("In UI\n");
     MainGameState_t* game_state = GetMainGameInfo();
     switch(action){
         case Start:
@@ -19,29 +17,51 @@ void userInput(UserAction_t action, bool hold){
         break;
         
         case Right:
-            if(game_state->current_state == Moving){
+            if(game_state->current_state == Moving && (game_state->game->pause == Unpaused)){
                 MoveRight(game_state->game, game_state->figure);
             }
         break;
 
         case Left:
-            if(game_state->current_state == Moving){
+            if(game_state->current_state == Moving && (game_state->game->pause == Unpaused)){
                 MoveLeft(game_state->game, game_state->figure);
             }    
         break;
 
         case Down:
-            if(game_state->current_state == Moving){
-                MoveDownToTheEnd(game_state->game, game_state->figure);
+            if(game_state->current_state == Moving && (game_state->game->pause == Unpaused)){
+                if(MoveDownToTheEnd(game_state->game, game_state->figure) == MoveDownCollision){
+                    game_state->current_state = Collision;
+                }
             }    
+        break;
 
+        case Action:
+            if((game_state->game->pause == Unpaused) && game_state->current_state == Moving){
+                game_state->current_state = Rotating;
+                RotateFigure(game_state->game, game_state->figure);
+                game_state->current_state = Moving;
+            }
+        break;
+            
+        case Pause:
+            PauseGame(game_state->game);
+        break;
 
     }
 }
 
+void PauseGame(GameInfo_t* game){
+    game->pause = !(game->pause);
+}
+
+void InitRandom(){
+    srand(time(NULL));
+}
+
 GameInfo_t updateCurrentState(){
     MainGameState_t* game_state = GetMainGameInfo();
-    InitGameInfoIfNeed(game_state);
+    InitInfoIfNeed(game_state);
     TetrisFsm(game_state);
     return *(game_state->game);
 }
@@ -52,7 +72,7 @@ int GenerateRandomNum(int max_num){
 }
 
 int** InitMatrix(int rows, int cols){
-    int** matrix = malloc(rows * sizeof(int*)); 
+    int** matrix = malloc(rows * sizeof(int*)); // нужна ли проверка malloc на 0
     for(int i = 0; i < rows; i++){
         matrix[i] = malloc(cols * sizeof(int));
         for(int j = 0; j < cols; j++){
@@ -80,12 +100,15 @@ void UpdateCurrentFigure(FigureInfo_t* figure){
 
     figure->y = 0;
     figure->x = FIELD_WIDTH / 2 - 2;
+    figure->angle = Degree0;
 }
 
-void InitGameInfoIfNeed(MainGameState_t* game_state){
+void InitInfoIfNeed(MainGameState_t* game_state){
     if(game_state->game == NULL){
         game_state->game = malloc(sizeof(GameInfo_t));
         game_state->game->field = InitMatrix(FIELD_HEIGHT, FIELD_WIDTH);
+        InitRandom();
+        game_state->game->pause = Unpaused;
     }
 } 
 
@@ -93,8 +116,10 @@ void InitFigureIfNeed(MainGameState_t* game_state){
     if(game_state->figure == NULL){
         game_state->figure = malloc(sizeof(FigureInfo_t));
         game_state->figure->current_figure = InitMatrix(FIGURE_ROWS, FIGURE_COLS);
-        game_state->figure->y = -1;
+        game_state->figure->temp_matrix = InitMatrix(FIGURE_ROWS, FIGURE_COLS);
+        game_state->figure->y = 0;
         game_state->figure->x = FIELD_WIDTH / 2 - 2;
+        game_state->figure->angle = Degree0;
     }
 }
 
@@ -110,8 +135,8 @@ void CopyStaticMatrixToDynamic(int rows, int cols, int **matrix, int(*copied_mat
 
 void GenerateSmashboy(int** current_figure){
     int smashboy_matrix[FIGURE_ROWS][FIGURE_COLS] = { 
-        {1, 1, 0, 0},
-        {1, 1, 0, 0},
+        {0, 1, 1, 0},
+        {0, 1, 1, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     };
@@ -121,8 +146,8 @@ void GenerateSmashboy(int** current_figure){
 
 void GenerateHero(int** current_figure){
     int hero_matrix[FIGURE_ROWS][FIGURE_COLS] = {
-        {1, 1, 1, 1},
         {0, 0, 0, 0},
+        {1, 1, 1, 1},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     };
@@ -214,7 +239,7 @@ void GenerateTetromino(int random_num, FigureInfo_t* figure){
 
 void GenerateNewFigure(MainGameState_t *game_state){
     //int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
-    int random_num = GenerateRandomNum(7);
+    int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
     game_state->figure->current_type = random_num;
     GenerateTetromino(random_num, game_state->figure);
 }
@@ -269,37 +294,40 @@ void AddFigureToField(GameInfo_t* game, int** matrix, FigureInfo_t* figure){
 
 int MoveDown(GameInfo_t *game, FigureInfo_t* figure){
     int status = MoveDownOk;
-    ClearFigureFromGameField(game, figure);
-    figure->y++;
-    if(CheckCollision(game, figure->current_figure, figure)){
-        figure->y--;
-        AddFigureToField(game, figure->current_figure, figure);
-        status = MoveDownCollision;
+    if(game->pause == Unpaused){
+        ClearFigureFromGameField(game, figure);
+        figure->y++;
+        if(CheckCollision(game, figure->current_figure, figure->y, figure->x)){
+            figure->y--;
+            AddFigureToField(game, figure->current_figure, figure);
+            status = MoveDownCollision;
+        }
+        if(status == MoveDownOk){   
+            AddFigureToField(game, figure->current_figure, figure);
+        }
     }
-    if(status == MoveDownOk){   
-        AddFigureToField(game, figure->current_figure, figure);
-    }
-    return status;
+        return status;
 }
 
-void MoveDownToTheEnd(GameInfo_t *game, FigureInfo_t* figure){
-    int status = 0;
+int MoveDownToTheEnd(GameInfo_t *game, FigureInfo_t* figure){
+    int status = MoveDownOk;
     while(status != MoveDownCollision) {
        status = MoveDown(game, figure);
     }
+    return status;
 }
                 
 
-int CheckCollision(GameInfo_t* game, int** matrix, FigureInfo_t* figure){
+int CheckCollision(GameInfo_t* game, int** matrix, int y, int x){
     int status = false;
     for(int i = 0; i < FIGURE_ROWS; i++){
         for(int j = 0; j < FIGURE_COLS; j++){
             if(matrix[i][j]){
-                int y = figure->y + i;
-                int x = figure->x + j;
-                if(y < 0 || y >= FIELD_HEIGHT || x < 0 || x >= FIELD_WIDTH){
+                int new_y = y + i;
+                int new_x = x + j;
+                if(new_y < 0 || new_y >= FIELD_HEIGHT || new_x < 0 || new_x >= FIELD_WIDTH){
                     status = true;
-                } else if(game->field[y][x]){
+                } else if(game->field[new_y][new_x]){
                     status = true;
                 }
             }
@@ -318,7 +346,7 @@ int CheckRightSide(GameInfo_t* game, FigureInfo_t* figure){
             for(int j = 0; j < FIGURE_COLS; j++){
                 if(figure->current_figure[i][j]){ 
                     if(y >= 0){
-                        if(x + 1 == 10){
+                        if(x + 1 == FIELD_WIDTH){
                             status = true;
                         } else if(game->field[y][x + 1]){
                             status = true;
@@ -344,7 +372,7 @@ int CheckLeftSide(GameInfo_t* game, FigureInfo_t* figure){
             for(int j = 0; j < FIGURE_COLS; j++){
                 if(figure->current_figure[i][j]){ 
                     if(y >= 0){
-                        if(x - 1 == -1){
+                        if(x - 1 < 0){
                             status = true;
                         } else if(game->field[y][x - 1]){
                                 status = true;
@@ -411,46 +439,97 @@ void MoveLinesDown(int** field, int row_num){
     }
 }
 
-int RotateFigure(GameInfo_t* game, FigureInfo_t* figure, int** temp_matrix){ 
-    int status = 0;
-    int num = FIGURE_COLS - 1;
-    if(figure->current_type != Smashboy && figure->current_type != Hero){
-            temp_matrix = InitMatrix(FIGURE_ROWS, FIGURE_COLS);
+void RotateFigure(GameInfo_t* game, FigureInfo_t* figure){ 
+    int  n = 0;
+    if(figure->current_type != Hero){
+        n = 1;
+    }
+    int num = FIGURE_COLS - 1 - n;
+    for(int i = 0; i < FIGURE_ROWS - n; i++){ 
+        for(int j = 0; j < FIGURE_COLS - n; j++){
+            figure->temp_matrix[j][num - i] = figure->current_figure[i][j];
+        }
+    }
+    ClearFigureFromGameField(game, figure);
+    switch (figure->current_type){
+
+        case Smashboy:
+            break;
+    
+        case Hero:
+            RotateHero(game, figure);
+            break;
+
+        default:
+            RotateAnotherFigures(game, figure);
+            break;
+
+    }
+
+    AddFigureToField(game, figure->current_figure, figure);
+}
+            
+void RotateHero(GameInfo_t* game, FigureInfo_t* figure){
+    int hero_kicks[4][5][2] = {
+        {{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
+        {{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
+        {{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
+        {{0, 0},{1, 0},{-2, 0},{1, -2},{-2, 1}}
+    };
+
+    for(int k = 0; k < 5; k++){
+        int new_y =  figure->y + hero_kicks[figure->angle][k][1]; 
+        int new_x = figure->x + hero_kicks[figure->angle][k][0];
+        if(!CheckCollision(game, figure->temp_matrix, new_y, new_x)){
             for(int i = 0; i < FIGURE_ROWS; i++){
                 for(int j = 0; j < FIGURE_COLS; j++){
-                    temp_matrix[j][num - i] = figure->current_figure[i][j];
+                    figure->current_figure[i][j] = figure->temp_matrix[i][j];
                 }
-            }
-            ClearFigureFromGameField(game, figure);
-            if(!CheckCollision(game, temp_matrix, figure)){
-                for(int i = 0; i < FIGURE_ROWS; i++){
-                    for(int j = 0; j < FIGURE_COLS; j++){
-                    figure->current_figure[i][j] = temp_matrix[i][j];
-                    }
-                }
-                status = 1;
             } 
-        }
-    else if(figure->current_type == Hero){
-        temp_matrix = InitMatrix(FIGURE_ROWS, FIGURE_COLS);
-        for(int i = 0; i < FIGURE_ROWS; i++){
-            for(int j = 0; j < FIGURE_COLS; j++){
-                temp_matrix[j][num - i] = figure->current_figure[i][j];
+            if(figure->angle == Degree270){
+                figure->angle = Degree0;
+            } else{
+                figure->angle++;
             }
-        }
-        ClearFigureFromGameField(game, figure);
-        if(!CheckCollision(game, temp_matrix, figure)){
-            for(int i = 0; i < FIGURE_ROWS; i++){
-                for(int j = 0; j < FIGURE_COLS; j++){
-                figure->current_figure[i][j] = temp_matrix[i][j];
-                }
-            }
-            status = 1;
+            figure->y = new_y;
+            figure->x = new_x;
+            break;           
         } 
     }
-            
-    return status;
+
 }
+
+
+void RotateAnotherFigures(GameInfo_t* game, FigureInfo_t* figure){
+    int another_kicks[4][5][2] = {
+       {{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
+       {{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
+       {{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
+       {{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}}
+    };
+
+    for(int k = 0; k < 5; k++){
+        int new_y =  figure->y + another_kicks[figure->angle][k][1]; 
+        int new_x = figure->x + another_kicks[figure->angle][k][0];
+        if(!CheckCollision(game, figure->temp_matrix, new_y, new_x)){
+            for(int i = 0; i < FIGURE_ROWS-1; i++){
+                for(int j = 0; j < FIGURE_COLS-1; j++){
+                    figure->current_figure[i][j] = figure->temp_matrix[i][j];
+                }
+            } 
+            if(figure->angle == Degree270){
+                figure->angle = Degree0;
+            } else{
+                figure->angle++;
+            }
+            figure->y = new_y;
+            figure->x = new_x;
+            break;           
+        } 
+    }
+
+}
+    
 
 void TetrisFsm(MainGameState_t *game_state){
     switch (game_state->current_state){
@@ -464,20 +543,25 @@ void TetrisFsm(MainGameState_t *game_state){
 
         case Spawn:
             GenerateNewFigure(game_state);
-            //UpdateCurrentFigure(game_state->figure);
+            UpdateCurrentFigure(game_state->figure);
+            if(CheckCollision(game_state->game, game_state->figure->current_figure, game_state->figure->y, game_state->figure->x)){
+                game_state->current_state = GameOver;
+                break;
+            } 
             AddFigureToField(game_state->game, game_state->figure->current_figure, game_state->figure);
             game_state->current_state = Moving;
             break;
 
         case Moving:
-            if(MoveDown(game_state->game, game_state->figure) == MoveDownCollision){
+            int status =  MoveDown(game_state->game, game_state->figure);
+            if(status == MoveDownCollision){
                 game_state->current_state = Collision;
             }
             break;
 
         case Collision:
             game_state->current_state = Clearing;
-            UpdateCurrentFigure(game_state->figure);
+           // UpdateCurrentFigure(game_state->figure);
             break;
     
         case Clearing:
@@ -486,10 +570,42 @@ void TetrisFsm(MainGameState_t *game_state){
             break;
 
         case Rotating:
-            
+            break;
+
+        case GameOver:
+            // ЗАСТАВКА
+            game_state->game->pause = GameOverPause;
+            break;
 
         default:
             break;
     }
     
+}
+
+void FreeMatrix(int** matrix, int row){
+    if(matrix){
+        for(int i = 0; i < row; i++){
+            free(matrix[i]);
+        }
+        free(matrix);
+    }
+}
+
+void TerminateGame(MainGameState_t* game_state){ 
+    FreeMatrix(game_state->game->field, FIELD_HEIGHT);
+    game_state->game->field = NULL; 
+    free(game_state->game);
+    game_state->game = NULL;
+    FreeMatrix(game_state->figure->current_figure, FIGURE_ROWS);
+    game_state->figure->current_figure = NULL;
+    FreeMatrix(game_state->figure->temp_matrix, FIGURE_ROWS);
+    game_state->figure->temp_matrix = NULL;
+    free(game_state->figure);
+    game_state->figure = NULL;
+}
+       
+void EndGame(){
+    MainGameState_t* game_state = GetMainGameInfo();
+    TerminateGame(game_state);
 }

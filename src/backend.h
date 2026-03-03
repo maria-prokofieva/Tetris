@@ -11,6 +11,10 @@
 #define LIMIT_X 10 
 #define EMPTY_CELL 0
 #define FILLED_CELL 1
+#define KEY_ENTER 10
+#define KEY_PAUSE_LOWER 112
+#define KEY_PAUSE_UPPER 80
+#define KEY_SPACE 32
 #include <stdio.h>
 #include <stdlib.h>
 #include <ncurses.h>
@@ -30,12 +34,20 @@ typedef enum{
     Teewee //T
 }Figures_t; 
 
+typedef enum{
+  Degree0,
+  Degree90,
+  Degree180,
+  Degree270
+}Rotation_angle;
+
 typedef struct { // ИНФО ТЕКУЩАЯ ФИГУРА 
   int** current_figure;
   int x;
   int y;
   int** temp_matrix;
   Figures_t current_type;
+  Rotation_angle angle;
 }FigureInfo_t;
 
 typedef enum{ // СОСТОЯНИЯ ИГРЫ
@@ -55,18 +67,25 @@ typedef enum{ // СОСТОЯНИЯ ИГРЫ
     MoveDownCollision
  } MoveResult_t;
 
-typedef struct {
-  struct timespec last_tick;
-  struct timespec now;
-  long time_interval;
-  int tick_time;
-} Timer_t;
+ typedef enum{
+    Unpaused,
+    Paused, 
+    GameOverPause
+ } PauseState_t;
+
+// typedef struct {
+//   struct timespec last_tick;
+//   struct timespec now;
+//   long time_interval;
+//   int tick_time;
+// } Timer_t;
 
 typedef struct {
   GameInfo_t* game;
   GameState_t current_state;
   FigureInfo_t* figure;
 } MainGameState_t;
+
 
 
 
@@ -96,7 +115,7 @@ void GenerateSmashboy(int** current_figure);
 int MoveDown(GameInfo_t *game, FigureInfo_t* figure);
 void AddFigureToField(GameInfo_t* game, int** matrix, FigureInfo_t* figure);
 void ClearFigureFromGameField(GameInfo_t *game, FigureInfo_t *figure);
-int CheckCollision(GameInfo_t* game, int** matrix, FigureInfo_t* figure);
+int CheckCollision(GameInfo_t* game, int** matrix, int y, int x);
 void MoveRight(GameInfo_t* game, FigureInfo_t* figure);
 void MoveLeft(GameInfo_t* game, FigureInfo_t* figure);
 int CheckRightSide(GameInfo_t* game, FigureInfo_t* figure);
@@ -120,6 +139,8 @@ int CheckLeftCollision(FigureInfo_t* figure, GameInfo_t* game);
 void TetrisFsm(MainGameState_t *game_state);
 
 
-int RotateFigure(GameInfo_t* game, FigureInfo_t* figure, int** matrix);
+void RotateFigure(GameInfo_t* game, FigureInfo_t* figure);
+void RotateHero(GameInfo_t* game, FigureInfo_t* figure);
+void RotateAnotherFigures(GameInfo_t* game, FigureInfo_t* figure);
 
 

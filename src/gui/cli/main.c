@@ -37,7 +37,8 @@ void PlayTetris(){
     WINDOW* game_win = InitGameFieldFront();
     int tick = 0;
     int n = 0;
-    while(1){
+    GameInfo_t game = updateCurrentState();
+    while(game.pause != GameOverPause){
     int key = getch();
     int action = -1;
     bool hold = 0;
@@ -47,7 +48,7 @@ void PlayTetris(){
             //     userInput(Start, hold);
             //     break;
 
-            case 10: // ДОБАВИТЬ В DEFINEE 
+            case KEY_ENTER: 
                 userInput(Start, hold);
                 break;
 
@@ -63,16 +64,26 @@ void PlayTetris(){
             case KEY_DOWN:
                 userInput(Down, hold);
                 break;
+
+            case KEY_SPACE:
+                userInput(Action, hold);
+                break;
+
+            case KEY_PAUSE_UPPER:
+            case KEY_PAUSE_LOWER:
+                userInput(Pause, hold);
+            break;
             
         }    
-        if (tick >= 20) {         // ~ 20 * 10ms = 200ms
-            GameInfo_t game = updateCurrentState();
+        if (tick >= 20) {         
+            game = updateCurrentState();
             PrintGameFieldFront(game, game_win, action);
             tick = 0;
         }
         napms(20); 
         tick++;
     }
+    EndGame();
 }
 
 int main() {
