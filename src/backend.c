@@ -315,7 +315,7 @@ void AddFigureToField(GameInfo_t* game, int** matrix, FigureInfo_t* figure){
         int figure_x = figure->x;
         for(int j = 0; j < FIGURE_COLS; j++){
             if(matrix[i][j] == 1 && figure_y >= 0 && figure_x >= 0){
-                game->field[figure_y][figure_x] = 1;
+                game->field[figure_y][figure_x] = figure->current_type + 1;
             }
             figure_x++;
         }

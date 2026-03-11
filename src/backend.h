@@ -27,7 +27,7 @@
 
 // #define PAUSE 'p'
 typedef enum{
-    Hero, //I
+    Hero, // I
     Smashboy, //O
     RhodeIsland, //S
     Cleveland,//Z 

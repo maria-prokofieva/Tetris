@@ -33,8 +33,10 @@ void PrintGameFieldFront(GameInfo_t game, WINDOW* game_win){
         for(int j = 0; j < FIELD_WIDTH; j++) {
             int width = j * CELL_SIZE + FRAME_LINE;
             int height = i + FRAME_LINE;   
-            if(game.field[i][j] == 1) {
-                mvwprintw(game_win, height, width, "[ ]");         
+            if(game.field[i][j] > 0) {
+                wattron(game_win, COLOR_PAIR(game.field[i][j]));
+                mvwprintw(game_win, height, width, "[ ]"); 
+                wattroff(game_win, COLOR_PAIR(game.field[i][j]));      
             } else {
                 mvwprintw(game_win, height, width, "   ");          
             }                        
@@ -43,10 +45,10 @@ void PrintGameFieldFront(GameInfo_t game, WINDOW* game_win){
     wrefresh(game_win);
 }
 
-void PrintStateFieldFront(GameInfo_t game, WINDOW* state_win){ 
+void PrintNextFigure(GameInfo_t game, WINDOW* state_win){ 
     for(int i = 0; i < FIGURE_ROWS; i++) {
         for(int j = 0; j < FIGURE_COLS; j++) {
-            int width = (j * CELL_SIZE + FRAME_LINE + GAME_WIN_WIDTH / 2) - 2;
+            int width = (j * CELL_SIZE + FRAME_LINE + GAME_WIN_WIDTH / 2) - 6;
             int height = i + FRAME_LINE + GAME_WIN_HEIGHT / 2;   
             if(game.next[i][j] == 1) {
                 mvwprintw(state_win, height, width, "[ ]");         
@@ -58,17 +60,15 @@ void PrintStateFieldFront(GameInfo_t game, WINDOW* state_win){
     wrefresh(state_win);
 }
 
-void PrintStatesFront(GameInfo_t game, WINDOW* state_win){
+void PrintStatsFront(GameInfo_t game, WINDOW* state_win){
     char* text = "Score:";
     char* text_2 = "Level:";
     char* text_3 = "High score:";
-
-
-    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s %d", text, game.score); 
-    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 1, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s %d", text_2, game.level); 
-    mvwprintw(state_win, GAME_WIN_HEIGHT / 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s %d", text_3, game.high_score); 
-
-
+    char* text_4 = "Next:";
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 4, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text, game.score); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 3, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text_2, game.level); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text_3, game.high_score); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 1, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s", text_4); 
 }
 
 
@@ -128,8 +128,8 @@ void PlayTetris(){
         if (tick >= 20) {         
            game = updateCurrentState();
            PrintGameFieldFront(game, game_win);
-           PrintStateFieldFront(game, state_win); 
-           PrintStatesFront(game, state_win);
+           PrintNextFigure(game, state_win); 
+           PrintStatsFront(game, state_win);
             tick = 0;
         }
         napms(20); 
@@ -142,6 +142,18 @@ int main() {
 
 
     InitNcurses();
+    start_color();
+    init_pair(1, COLOR_CYAN, COLOR_BLACK); 
+    init_pair(2, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(3, COLOR_GREEN, COLOR_BLACK);
+    init_pair(4, COLOR_RED, COLOR_BLACK);
+    // init_pair(5, COLOR_ORANGE, COLOR_BLACK);
+    if (can_change_color()) {
+    init_color(8, 1000, 500, 0);   // RGB ~ оранжевый
+    init_pair(5, 8, COLOR_BLACK);
+}
+    init_pair(6, COLOR_BLUE, COLOR_BLACK);
+    init_pair(7, COLOR_MAGENTA, COLOR_BLACK); 
     PlayTetris();
     endwin();
 
