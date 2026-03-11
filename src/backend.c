@@ -130,6 +130,7 @@ void InitInfoIfNeed(MainGameState_t* game_state){
         game_state->game->pause = Unpaused;
         game_state->game->level = 1;
         game_state->game->score = 0;
+        game_state->game->high_score = GetRecord();
     }
 } 
 
@@ -650,6 +651,7 @@ void CountStats(int num_filled_lines, MainGameState_t *game_state){
     }
     if(game_state->game->score > GetRecord()){
         SetRecord(game_state->game->score);
+        game_state->game->high_score = GetRecord();
     }
 }
 

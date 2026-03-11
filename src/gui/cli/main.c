@@ -61,9 +61,13 @@ void PrintStateFieldFront(GameInfo_t game, WINDOW* state_win){
 void PrintStatesFront(GameInfo_t game, WINDOW* state_win){
     char* text = "Score:";
     char* text_2 = "Level:";
+    char* text_3 = "High score:";
+
 
     mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s %d", text, game.score); 
     mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 1, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s %d", text_2, game.level); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s %d", text_3, game.high_score); 
+
 
 }
 
