@@ -5,7 +5,18 @@
 WINDOW* InitGameFieldFront(){
     WINDOW *win = newwin(GAME_WIN_HEIGHT, GAME_WIN_WIDTH, 0, 0);
     box(win, 0, 0);
+    //char* text = "Tetris";
+    //mvwprintw(win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s", text); 
     refresh();
+    return win;
+}
+
+WINDOW* InitStateFieldFront(){
+    WINDOW *win = newwin(GAME_WIN_HEIGHT, GAME_WIN_WIDTH, 0, GAME_WIN_WIDTH + 2);
+    box(win, 0, 0);
+    //char* text = "Tetris";
+    //mvwprintw(win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s", text); 
+    wrefresh(win);
     return win;
 }
 
@@ -14,10 +25,10 @@ void InitNcurses() {
     keypad(stdscr, TRUE);
     noecho(); 
     curs_set(0); 
-    nodelay(stdscr, TRUE);   
+   // nodelay(stdscr, TRUE);   
 }
 
-void PrintGameFieldFront(GameInfo_t game, WINDOW* game_win, int action){ 
+void PrintGameFieldFront(GameInfo_t game, WINDOW* game_win){ 
     for(int i = 0; i < FIELD_HEIGHT; i++) {
         for(int j = 0; j < FIELD_WIDTH; j++) {
             int width = j * CELL_SIZE + FRAME_LINE;
@@ -32,21 +43,56 @@ void PrintGameFieldFront(GameInfo_t game, WINDOW* game_win, int action){
     wrefresh(game_win);
 }
 
+void PrintStateFieldFront(GameInfo_t game, WINDOW* state_win){ 
+    for(int i = 0; i < FIGURE_ROWS; i++) {
+        for(int j = 0; j < FIGURE_COLS; j++) {
+            int width = (j * CELL_SIZE + FRAME_LINE + GAME_WIN_WIDTH / 2) - 2;
+            int height = i + FRAME_LINE + GAME_WIN_HEIGHT / 2;   
+            if(game.next[i][j] == 1) {
+                mvwprintw(state_win, height, width, "[ ]");         
+            } else {
+                mvwprintw(state_win, height, width, "   ");          
+            }                        
+        }
+    }  
+    wrefresh(state_win);
+}
+
+void PrintStatesFront(GameInfo_t game, WINDOW* state_win){
+    char* text = "Score:";
+    char* text_2 = "Level:";
+
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s %d", text, game.score); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 1, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s %d", text_2, game.level); 
+
+}
+
 
 void PlayTetris(){
     WINDOW* game_win = InitGameFieldFront();
+    WINDOW* state_win = InitStateFieldFront();
     int tick = 0;
-    int n = 0;
+    int n = 0;  
     GameInfo_t game = updateCurrentState();
+    //wrefresh(game_win); 
+    //int height = GAME_WIN_HEIGHT / 2;
+    char* text = "Tetris";
+    char* text_2 = "Press Enter to start";
+    mvwprintw(game_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s", text); 
+    mvwprintw(game_win, GAME_WIN_HEIGHT / 2 - 1, (GAME_WIN_WIDTH / 2) - (strlen(text_2)/2), "%s", text_2);  
+    //ГАСНЕТ ЕСЛИ НАЖАЛИ НЕ ЕНТЕР
+    wrefresh(game_win);
+    nodelay(stdscr, FALSE);   
     while(game.pause != GameOverPause){
     int key = getch();
+    nodelay(stdscr, TRUE);
     int action = -1;
     bool hold = 0;
     switch(key){
-            // case KEY_ENTER:
-            //     action = Start;
-            //     userInput(Start, hold);
-            //     break;
+            case KEY_QUIT_UPPER:
+            case KEY_QUIT_LOWER:
+                userInput(Terminate, hold);
+            break;
 
             case KEY_ENTER: 
                 userInput(Start, hold);
@@ -76,8 +122,10 @@ void PlayTetris(){
             
         }    
         if (tick >= 20) {         
-            game = updateCurrentState();
-            PrintGameFieldFront(game, game_win, action);
+           game = updateCurrentState();
+           PrintGameFieldFront(game, game_win);
+           PrintStateFieldFront(game, state_win); 
+           PrintStatesFront(game, state_win);
             tick = 0;
         }
         napms(20); 
@@ -87,6 +135,8 @@ void PlayTetris(){
 }
 
 int main() {
+
+
     InitNcurses();
     PlayTetris();
     endwin();

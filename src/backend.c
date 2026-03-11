@@ -6,6 +6,20 @@ MainGameState_t* GetMainGameInfo() {
     return &game_state;
 }
 
+void SetRecord(int score){
+    FILE *file = fopen("record.txt", "w");
+    fprintf(file, "%d", score);
+    fclose(file);
+}
+
+int GetRecord(){
+    int score = 0;
+    FILE *file = fopen("record.txt", "r");
+    fscanf(file, "%d", &score);
+    fclose(file);
+    return score;
+}
+
 void userInput(UserAction_t action, bool hold){
     MainGameState_t* game_state = GetMainGameInfo();
     switch(action){
@@ -48,6 +62,8 @@ void userInput(UserAction_t action, bool hold){
             PauseGame(game_state->game);
         break;
 
+        case Terminate:
+            game_state->current_state = GameOver;
     }
 }
 
@@ -107,8 +123,13 @@ void InitInfoIfNeed(MainGameState_t* game_state){
     if(game_state->game == NULL){
         game_state->game = malloc(sizeof(GameInfo_t));
         game_state->game->field = InitMatrix(FIELD_HEIGHT, FIELD_WIDTH);
+        game_state->game->next = InitMatrix(FIGURE_ROWS, FIGURE_COLS);
+        InitFigureIfNeed(game_state); 
         InitRandom();
+        game_state->figure->next_type = -1;
         game_state->game->pause = Unpaused;
+        game_state->game->level = 1;
+        game_state->game->score = 0;
     }
 } 
 
@@ -120,6 +141,8 @@ void InitFigureIfNeed(MainGameState_t* game_state){
         game_state->figure->y = 0;
         game_state->figure->x = FIELD_WIDTH / 2 - 2;
         game_state->figure->angle = Degree0;
+        game_state->figure->current_type = 0;
+        game_state->figure->next_type = 0;
     }
 }
 
@@ -204,47 +227,55 @@ void GenerateTeewee(int** current_figure){
     CopyStaticMatrixToDynamic(FIGURE_ROWS, FIGURE_COLS, current_figure, teewee_matrix);
 }
 
-void GenerateTetromino(int random_num, FigureInfo_t* figure){ 
+void GenerateTetromino(int random_num, int** figure){ 
     switch (random_num){
         case Smashboy:
-            GenerateSmashboy(figure->current_figure);
+            GenerateSmashboy(figure);
         break;
         
         case Hero:
-            GenerateHero(figure->current_figure);
+            GenerateHero(figure);
         break;
 
         case RhodeIsland:
-            GenerateRhodeIsland(figure->current_figure);
+            GenerateRhodeIsland(figure);
         break;
 
         case Cleveland:
-            GenerateCleveland(figure->current_figure);
+            GenerateCleveland(figure);
         break;
 
         case OrangeRicky:
-            GenerateOrangeRicky(figure->current_figure);
+            GenerateOrangeRicky(figure);
         break;
 
         case BlueRicky:
-            GenerateBlueRicky(figure->current_figure);
+            GenerateBlueRicky(figure);
         break;
 
         case Teewee:
-            GenerateTeewee(figure->current_figure);
+            GenerateTeewee(figure);
         break;
     }
 }
 
 
 void GenerateNewFigure(MainGameState_t *game_state){
-    //int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
+    
+    EquateMatrices(game_state->figure->current_figure, game_state->game->next);
+    game_state->figure->current_type = game_state->figure->next_type; 
     int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
-    game_state->figure->current_type = random_num;
-    GenerateTetromino(random_num, game_state->figure);
+    GenerateTetromino(random_num, game_state->game->next);
+    game_state->figure->next_type = random_num;  
 }
 
-
+void EquateMatrices(int** current_figure, int** next){
+    for(int i = 0; i < FIGURE_ROWS; i++){
+        for(int j = 0; j < FIGURE_COLS; j++){
+            current_figure[i][j] = next[i][j];
+        }
+    }
+}
 
 
 
@@ -419,13 +450,16 @@ int IsFilledLine(int** field, int row_num){
     return status;
 }
 
-void ClearLines(int** field){
+int ClearLines(int** field){
+    int num_filled_lines = 0;
     for(int i = FIELD_HEIGHT - 1; i > 0 ; i--){
         if(IsFilledLine(field, i)){
             MoveLinesDown(field, i - 1);
             i++;
+            num_filled_lines++;
         }
     }
+    return num_filled_lines;
 }
 
 void MoveLinesDown(int** field, int row_num){
@@ -537,11 +571,15 @@ void TetrisFsm(MainGameState_t *game_state){
             break;
 
         case Initial:
-            InitFigureIfNeed(game_state);
             game_state->current_state = Spawn;
             break;
 
         case Spawn:
+            if (game_state->figure->next_type == -1) {
+                int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
+                GenerateTetromino(random_num, game_state->game->next);
+                game_state->figure->next_type = random_num;
+            }
             GenerateNewFigure(game_state);
             UpdateCurrentFigure(game_state->figure);
             if(CheckCollision(game_state->game, game_state->figure->current_figure, game_state->figure->y, game_state->figure->x)){
@@ -553,7 +591,7 @@ void TetrisFsm(MainGameState_t *game_state){
             break;
 
         case Moving:
-            int status =  MoveDown(game_state->game, game_state->figure);
+            int status = MoveDown(game_state->game, game_state->figure);
             if(status == MoveDownCollision){
                 game_state->current_state = Collision;
             }
@@ -565,7 +603,10 @@ void TetrisFsm(MainGameState_t *game_state){
             break;
     
         case Clearing:
-            ClearLines(game_state->game->field);
+            int num_filled_lines = ClearLines(game_state->game->field);
+            if(num_filled_lines){
+                CountStats(num_filled_lines, game_state);
+            }
             game_state->current_state = Spawn;
             break;
 
@@ -583,6 +624,37 @@ void TetrisFsm(MainGameState_t *game_state){
     
 }
 
+void CountStats(int num_filled_lines, MainGameState_t *game_state){  
+    switch(num_filled_lines){
+        case 1:
+            game_state->game->score += 100;
+        break;
+
+        case 2:
+            game_state->game->score += 300;
+        break;
+
+        case 3:
+            game_state->game->score += 700;
+        break;
+
+        case 4:
+            game_state->game->score += 1500;
+        break;
+    
+        default:
+            break;
+    }
+    if(game_state->game->score / 600 <= 10 && game_state->game->score >= 600){
+        game_state->game->level = game_state->game->score / 600 + 1;
+    }
+    if(game_state->game->score > GetRecord()){
+        SetRecord(game_state->game->score);
+    }
+}
+
+
+
 void FreeMatrix(int** matrix, int row){
     if(matrix){
         for(int i = 0; i < row; i++){
@@ -594,7 +666,9 @@ void FreeMatrix(int** matrix, int row){
 
 void TerminateGame(MainGameState_t* game_state){ 
     FreeMatrix(game_state->game->field, FIELD_HEIGHT);
-    game_state->game->field = NULL; 
+    game_state->game->field = NULL;
+    FreeMatrix(game_state->game->next, FIGURE_ROWS);
+    game_state->game->next = NULL;
     free(game_state->game);
     game_state->game = NULL;
     FreeMatrix(game_state->figure->current_figure, FIGURE_ROWS);

@@ -1,7 +1,7 @@
 #define FIELD_WIDTH 10
 #define FIELD_HEIGHT 20
-#define GAME_WIN_HEIGHT FIELD_HEIGHT + FRAME_LINE * 2 // ЧЕК ЗНАЧЕНИЯ 
-#define GAME_WIN_WIDTH CELL_SIZE * FIELD_WIDTH + FRAME_LINE * 2  // ЧЕК ЗНАЧЕНИЯ 
+#define GAME_WIN_HEIGHT (FIELD_HEIGHT + FRAME_LINE * 2) // ЧЕК ЗНАЧЕНИЯ 
+#define GAME_WIN_WIDTH (CELL_SIZE * FIELD_WIDTH + FRAME_LINE * 2)  // ЧЕК ЗНАЧЕНИЯ 
 #define FRAME_LINE 1 
 #define CELL_SIZE 3
 #define FIGURE_ROWS 4
@@ -14,6 +14,8 @@
 #define KEY_ENTER 10
 #define KEY_PAUSE_LOWER 112
 #define KEY_PAUSE_UPPER 80
+#define KEY_QUIT_UPPER 81
+#define KEY_QUIT_LOWER 113
 #define KEY_SPACE 32
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +49,7 @@ typedef struct { // ИНФО ТЕКУЩАЯ ФИГУРА
   int y;
   int** temp_matrix;
   Figures_t current_type;
+  Figures_t next_type;
   Rotation_angle angle;
 }FigureInfo_t;
 
@@ -109,7 +112,7 @@ void InitGameInfoIfNeed(MainGameState_t* game_state);
 void InitFigureIfNeed(MainGameState_t* game_state);
 //GameState_t* Initstate();
 void GenerateNewFigure(MainGameState_t *game_state);
-void GenerateTetromino(int random_num, FigureInfo_t* figure);
+void GenerateTetromino(int random_num, int** figure);
 void GenerateHero(int** current_figure);
 void GenerateSmashboy(int** current_figure);
 int MoveDown(GameInfo_t *game, FigureInfo_t* figure);
@@ -126,7 +129,7 @@ void UpdateCurrentFigure(FigureInfo_t* figure);
 
 void CopyLine(int **field, int row_num);
 void MoveLinesDown(int **field, int row_num);
-void ClearLines(int **field);
+int ClearLines(int **field);
 int IsFilledLine(int **field, int row_num);
 
 
