@@ -50,8 +50,10 @@ void PrintNextFigure(GameInfo_t game, WINDOW* state_win){
         for(int j = 0; j < FIGURE_COLS; j++) {
             int width = (j * CELL_SIZE + FRAME_LINE + GAME_WIN_WIDTH / 2) - 6;
             int height = i + FRAME_LINE + GAME_WIN_HEIGHT / 2;   
-            if(game.next[i][j] == 1) {
-                mvwprintw(state_win, height, width, "[ ]");         
+            if(game.next[i][j] > 0) {
+                wattron(state_win, COLOR_PAIR(game.next[i][j]));
+                mvwprintw(state_win, height, width, "[ ]");   
+                wattroff(state_win, COLOR_PAIR(game.next[i][j]));        
             } else {
                 mvwprintw(state_win, height, width, "   ");          
             }                        
