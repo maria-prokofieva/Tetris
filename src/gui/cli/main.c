@@ -5,8 +5,6 @@
 WINDOW* InitGameFieldFront(){
     WINDOW *win = newwin(GAME_WIN_HEIGHT, GAME_WIN_WIDTH, 0, 0);
     box(win, 0, 0);
-    //char* text = "Tetris";
-    //mvwprintw(win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s", text); 
     refresh();
     return win;
 }
@@ -14,8 +12,6 @@ WINDOW* InitGameFieldFront(){
 WINDOW* InitStateFieldFront(){
     WINDOW *win = newwin(GAME_WIN_HEIGHT, GAME_WIN_WIDTH, 0, GAME_WIN_WIDTH + 2);
     box(win, 0, 0);
-    //char* text = "Tetris";
-    //mvwprintw(win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s", text); 
     wrefresh(win);
     return win;
 }
@@ -68,20 +64,34 @@ void PrintStatsFront(GameInfo_t game, WINDOW* state_win){
     char* text_3 = "High score:";
     char* text_4 = "Next:";
     mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 4, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text, game.score); 
-    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 3, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text_2, game.level); 
-    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text_3, game.high_score); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 3, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text_3, game.high_score); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text_2, game.level); 
     mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 1, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s", text_4); 
+    wrefresh(state_win);
+}
+
+void PrintGameOver(GameInfo_t game, WINDOW* state_win){
+    char* text = "Score:";
+    char* text_2 = "Level:";
+    char* text_3 = "High score:";
+    char* text_4 = "GAME OVER";
+    char* text_5 = "Try again?";
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 4, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text, game.score); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 3, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text_3, game.level); 
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s %d", text_2, game.high_score); 
+    wattron(state_win, COLOR_PAIR(4));
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2 - 1, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s", text_4); 
+    wattroff(state_win, COLOR_PAIR(4));  
+    mvwprintw(state_win, GAME_WIN_HEIGHT / 2, (GAME_WIN_WIDTH / 2) - (strlen(text)), "%s", text_5); 
+    wrefresh(state_win);
 }
 
 
 void PlayTetris(){
     WINDOW* game_win = InitGameFieldFront();
     WINDOW* state_win = InitStateFieldFront();
-    int tick = 0;
-    int n = 0;  
+    int tick = 0;  
     GameInfo_t game = updateCurrentState();
-    //wrefresh(game_win); 
-    //int height = GAME_WIN_HEIGHT / 2;
     char* text = "Tetris";
     char* text_2 = "Press Enter to start";
     mvwprintw(game_win, GAME_WIN_HEIGHT / 2 - 2, (GAME_WIN_WIDTH / 2) - (strlen(text)/2), "%s", text); 
@@ -90,54 +100,52 @@ void PlayTetris(){
     wrefresh(game_win);
     nodelay(stdscr, FALSE);   
     while(game.pause != GameOverPause){
-    int key = getch();
-    nodelay(stdscr, TRUE);
-    int action = -1;
-    bool hold = 0;
-    switch(key){
-            case KEY_QUIT_UPPER:
-            case KEY_QUIT_LOWER:
-                userInput(Terminate, hold);
-            break;
-
-            case KEY_ENTER: 
-                userInput(Start, hold);
+        game = updateCurrentState();
+        int key = getch();
+        nodelay(stdscr, TRUE);
+        int action = -1;
+        bool hold = 0;
+        switch(key){
+                case KEY_QUIT_UPPER:
+                case KEY_QUIT_LOWER:
+                    userInput(Terminate, hold);
                 break;
 
-            case KEY_RIGHT:
-                userInput(Right, hold);
+                case KEY_ENTER: 
+                    userInput(Start, hold);
+                    break;
 
-                break; 
+                case KEY_RIGHT:
+                    userInput(Right, hold);
 
-            case KEY_LEFT:
-                userInput(Left, hold);
+                    break; 
+
+                case KEY_LEFT:
+                    userInput(Left, hold);
+                    break;
+
+                case KEY_DOWN:
+                    userInput(Down, hold);
+                    break;
+
+                case KEY_SPACE:
+                    userInput(Action, hold);
+                    break;
+
+                case KEY_PAUSE_UPPER:
+                case KEY_PAUSE_LOWER:
+                    userInput(Pause, hold);
                 break;
-
-            case KEY_DOWN:
-                userInput(Down, hold);
-                break;
-
-            case KEY_SPACE:
-                userInput(Action, hold);
-                break;
-
-            case KEY_PAUSE_UPPER:
-            case KEY_PAUSE_LOWER:
-                userInput(Pause, hold);
-            break;
+                
+            }    
+            PrintGameFieldFront(game, game_win);
+            PrintNextFigure(game, state_win); 
+            PrintStatsFront(game, state_win);
             
-        }    
-        if (tick >= 20) {         
-           game = updateCurrentState();
-           PrintGameFieldFront(game, game_win);
-           PrintNextFigure(game, state_win); 
-           PrintStatsFront(game, state_win);
-            tick = 0;
-        }
-        napms(20); 
-        tick++;
     }
-    EndGame();
+    userInput(Pause, 0);
+    PrintGameOver(game, state_win);
+    //EndGame();
 }
 
 int main() {
@@ -151,82 +159,17 @@ int main() {
     init_pair(4, COLOR_RED, COLOR_BLACK);
     // init_pair(5, COLOR_ORANGE, COLOR_BLACK);
     if (can_change_color()) {
-    init_color(8, 1000, 500, 0);   // RGB ~ оранжевый
-    init_pair(5, 8, COLOR_BLACK);
-}
+        init_color(8, 1000, 500, 0);   // RGB ~ оранжевый
+        init_pair(5, 8, COLOR_BLACK);
+    }
     init_pair(6, COLOR_BLUE, COLOR_BLACK);
     init_pair(7, COLOR_MAGENTA, COLOR_BLACK); 
     PlayTetris();
     endwin();
-
     return 0;
 }
 
 
-
-
-
-
-
-
-
-
-// int main (){
-
-   
-//     GameState_t state = Initial;
-//     GameInfo_t* game = GetGameInfo();
-//     InitGameInfo(game);
-//     GenerateNewFigure(figure);
-
-//     int move_down_status = -1;
-//     int key = 0;
-//     struct timespec last_tick = {0}; // вынести в отдельную структуру?
-//     struct timespec now = {0}; // вынести в отдельную структуру?
-//     long time_interval =  0;
-//     clock_gettime(CLOCK_MONOTONIC, &last_tick); //текущее время в ласт тик 
-//     while(state != GameOver){
-//         struct timespec now;
-//         clock_gettime(CLOCK_MONOTONIC, &now);
-//         int tick_time = 500; 
-//         time_interval = (now.tv_nsec - last_tick.tv_nsec) / 1000000 + (now.tv_sec - last_tick.tv_sec) * 1000;
-//         if(time_interval >= tick_time){
-//             if(MoveDown(game, figure) == MoveDownCollision){
-//                 // после генерации новой фигуры скинуть таймер!!!
-//             } 
-//             last_tick = now;
-//         }
-//         key = getch();
-//         switch(key){
-//             case KEY_RIGHT:
-//                 MoveRight(game, figure);
-//                 // возвращать статус коллизии 
-                
-//                 break; 
-
-//             case KEY_LEFT:
-//                 MoveLeft(game, figure);
-//                 break;
-//             case ' ':
-//                RotateFigure(game, figure, figure->temp_matrix);
-//         }
-//         if(state == Collision){
-//             SetMatrixToZero(figure->current_figure, FIGURE_ROWS,FIGURE_COLS);           
-//             ClearLines(game->field); 
-//             GenerateNewFigure(figure);
-//             UpdateCurrentFigure(figure);
-//             state = Moving;
-//             //clock_gettime(CLOCK_MONOTONIC, &last_tick);
-//         }
-//         PrintGameFieldFront(game, game_win);
-//         wrefresh(game_win); 
-//     }
-
-    
-
-
-//     return 0;
-// } 
 
 
 

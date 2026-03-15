@@ -27,7 +27,6 @@ void userInput(UserAction_t action, bool hold){
             if(game_state->current_state == Waiting){;
                 game_state->current_state = Initial;
             }
-
         break;
         
         case Right:
@@ -44,14 +43,12 @@ void userInput(UserAction_t action, bool hold){
 
         case Down:
             if(game_state->current_state == Moving && (game_state->game->pause == Unpaused)){
-                if(MoveDownToTheEnd(game_state->game, game_state->figure) == MoveDownCollision){
-                    game_state->current_state = Collision;
-                }
+                UserMoveDown(game_state);
             }    
         break;
 
         case Action:
-            if((game_state->game->pause == Unpaused) && game_state->current_state == Moving){
+            if(game_state->game->pause == Unpaused && game_state->current_state == Moving){
                 game_state->current_state = Rotating;
                 RotateFigure(game_state->game, game_state->figure);
                 game_state->current_state = Moving;
@@ -59,7 +56,7 @@ void userInput(UserAction_t action, bool hold){
         break;
             
         case Pause:
-            PauseGame(game_state->game);
+            PauseGame(game_state);
         break;
 
         case Terminate:
@@ -67,8 +64,17 @@ void userInput(UserAction_t action, bool hold){
     }
 }
 
-void PauseGame(GameInfo_t* game){
-    game->pause = !(game->pause);
+void UserMoveDown(MainGameState_t* game_state){
+    if(MoveDownToTheEnd(game_state->game, game_state->figure) == MoveDownCollision){
+        game_state->current_state = Collision;
+    }
+}
+
+void PauseGame(MainGameState_t* game_state){
+    game_state->game->pause = !(game_state->game->pause);
+    if(game_state->game->pause == Unpaused){
+        clock_gettime(CLOCK_MONOTONIC, &game_state->time->start);
+    }
 }
 
 void InitRandom(){
@@ -88,7 +94,7 @@ int GenerateRandomNum(int max_num){
 }
 
 int** InitMatrix(int rows, int cols){
-    int** matrix = malloc(rows * sizeof(int*)); // нужна ли проверка malloc на 0
+    int** matrix = malloc(rows * sizeof(int*));
     for(int i = 0; i < rows; i++){
         matrix[i] = malloc(cols * sizeof(int));
         for(int j = 0; j < cols; j++){
@@ -106,14 +112,7 @@ void SetMatrixToZero(int** matrix, int rows, int cols){
     }
 }
 
-
-
 void UpdateCurrentFigure(FigureInfo_t* figure){
-    if (!figure || !figure->current_figure) {
-        fprintf(stderr, "ERROR HERE\n");
-        exit(1);
-    }
-
     figure->y = 0;
     figure->x = FIELD_WIDTH / 2 - 2;
     figure->angle = Degree0;
@@ -131,6 +130,8 @@ void InitInfoIfNeed(MainGameState_t* game_state){
         game_state->game->level = 1;
         game_state->game->score = 0;
         game_state->game->high_score = GetRecord();
+        game_state->time = malloc(sizeof(Timer_t));
+        clock_gettime(CLOCK_MONOTONIC, &game_state->time->start);
     }
 } 
 
@@ -147,8 +148,6 @@ void InitFigureIfNeed(MainGameState_t* game_state){
     }
 }
 
-
-
 void CopyStaticMatrixToDynamic(int rows, int cols, int **matrix, int(*copied_matrix)[cols]){
     for (int i = 0; i < rows; i++){
         for  (int j = 0; j < cols; j++){
@@ -159,13 +158,12 @@ void CopyStaticMatrixToDynamic(int rows, int cols, int **matrix, int(*copied_mat
 
 void GenerateSmashboy(int** current_figure){
     int smashboy_matrix[FIGURE_ROWS][FIGURE_COLS] = { 
-        {0, 1, 1, 0},
-        {0, 1, 1, 0},
+        {0, 2, 2, 0},
+        {0, 2, 2, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     };
     CopyStaticMatrixToDynamic(FIGURE_ROWS, FIGURE_COLS, current_figure, smashboy_matrix);
-
 }
 
 void GenerateHero(int** current_figure){
@@ -180,8 +178,8 @@ void GenerateHero(int** current_figure){
 
 void GenerateRhodeIsland(int** current_figure){
     int rhode_island_matrix[FIGURE_ROWS][FIGURE_COLS] = {
-        {0, 1, 1, 0},
-        {1, 1, 0, 0},
+        {0, 3, 3, 0},
+        {3, 3, 0, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     };
@@ -190,8 +188,8 @@ void GenerateRhodeIsland(int** current_figure){
 
 void GenerateCleveland(int** current_figure){
     int cleveland_matrix[FIGURE_ROWS][FIGURE_COLS] = {
-        {1, 1, 0, 0},
-        {0, 1, 1, 0},
+        {4, 4, 0, 0},
+        {0, 4, 4, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     };
@@ -200,8 +198,8 @@ void GenerateCleveland(int** current_figure){
 
 void GenerateOrangeRicky(int** current_figure){
     int orange_ricky_matrix[FIGURE_ROWS][FIGURE_COLS] = {
-        {0, 0, 1, 0},
-        {1, 1, 1, 0},
+        {0, 0, 5, 0},
+        {5, 5, 5, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     };
@@ -210,8 +208,8 @@ void GenerateOrangeRicky(int** current_figure){
 
 void GenerateBlueRicky(int** current_figure){
     int blue_ricky_matrix[FIGURE_ROWS][FIGURE_COLS] = {
-        {1, 0, 0, 0},
-        {1, 1, 1, 0},
+        {6, 0, 0, 0},
+        {6, 6, 6, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     };
@@ -220,8 +218,8 @@ void GenerateBlueRicky(int** current_figure){
 
 void GenerateTeewee(int** current_figure){
     int teewee_matrix[FIGURE_ROWS][FIGURE_COLS] = {
-        {0, 1, 0, 0},
-        {1, 1, 1, 0},
+        {0, 7, 0, 0},
+        {7, 7, 7, 0},
         {0, 0, 0, 0},
         {0, 0, 0, 0}
     };
@@ -262,7 +260,6 @@ void GenerateTetromino(int random_num, int** figure){
 
 
 void GenerateNewFigure(MainGameState_t *game_state){
-    
     EquateMatrices(game_state->figure->current_figure, game_state->game->next);
     game_state->figure->current_type = game_state->figure->next_type; 
     int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
@@ -278,28 +275,12 @@ void EquateMatrices(int** current_figure, int** next){
     }
 }
 
-
-
-
-void PrintField(GameInfo_t* game){
-    for(int i = 0; i < FIELD_HEIGHT; i++){
-        for(int j = 0; j <  FIELD_WIDTH; j++){
-            printf("%d", game->field[i][j]);
-        }
-       printf("\n");
-    }
-        printf("\n");
-}
-
-
-
-
 void ClearFigureFromGameField(GameInfo_t *game, FigureInfo_t *figure){
     int y = figure->y;
     for(int i = 0; i < FIGURE_ROWS; i++){
         int x = figure->x;
         for(int j = 0; j < FIGURE_COLS; j++){
-            if(figure->current_figure[i][j] && y >= 0){
+            if(figure->current_figure[i][j] > 0 && y >= 0){
                 game->field[y][x] = 0;
             }
             x++;
@@ -314,7 +295,7 @@ void AddFigureToField(GameInfo_t* game, int** matrix, FigureInfo_t* figure){
     for(int i = 0; i < FIGURE_ROWS; i++){
         int figure_x = figure->x;
         for(int j = 0; j < FIGURE_COLS; j++){
-            if(matrix[i][j] == 1 && figure_y >= 0 && figure_x >= 0){
+            if(matrix[i][j] > 0 && figure_y >= 0 && figure_x >= 0){
                 game->field[figure_y][figure_x] = figure->current_type + 1 ;
             }
             figure_x++;
@@ -322,7 +303,6 @@ void AddFigureToField(GameInfo_t* game, int** matrix, FigureInfo_t* figure){
         figure_y++;
     }
 }
-
 
 int MoveDown(GameInfo_t *game, FigureInfo_t* figure){
     int status = MoveDownOk;
@@ -348,81 +328,30 @@ int MoveDownToTheEnd(GameInfo_t *game, FigureInfo_t* figure){
     }
     return status;
 }
-                
 
+                
 int CheckCollision(GameInfo_t* game, int** matrix, int y, int x){
     int status = false;
     for(int i = 0; i < FIGURE_ROWS; i++){
         for(int j = 0; j < FIGURE_COLS; j++){
-            if(matrix[i][j]){
-                int new_y = y + i;
-                int new_x = x + j;
-                if(new_y < 0 || new_y >= FIELD_HEIGHT || new_x < 0 || new_x >= FIELD_WIDTH){
-                    status = true;
-                } else if(game->field[new_y][new_x]){
-                    status = true;
-                }
+            if(matrix[i][j] <= 0){
+                continue;
+            }
+            int new_y = y + i;
+            int new_x = x + j;
+            if(new_y < 0 || new_y >= FIELD_HEIGHT || new_x < 0 || new_x >= FIELD_WIDTH){
+                status = true;
+            } else if(game->field[new_y][new_x] > 0){
+                status = true;
             }
         }
     }
     return status;
 }
-
-
-int CheckRightSide(GameInfo_t* game, FigureInfo_t* figure){
-    int status = false;
-    int y = figure->y;
-    for(int  i = 0; i < FIGURE_ROWS; i++){ 
-        int x = figure->x;
-        if (!status){
-            for(int j = 0; j < FIGURE_COLS; j++){
-                if(figure->current_figure[i][j]){ 
-                    if(y >= 0){
-                        if(x + 1 == FIELD_WIDTH){
-                            status = true;
-                        } else if(game->field[y][x + 1]){
-                            status = true;
-                        }
-                    }
-                    
-                }
-                x++;
-            }
-        }
-        y++;
-    }
-    return status;
-}
-
-
-int CheckLeftSide(GameInfo_t* game, FigureInfo_t* figure){
-    int status = false;
-    int y = figure->y;
-    for(int  i = 0; i < FIGURE_ROWS; i++){ 
-        int x = figure->x;
-        if (!status){
-            for(int j = 0; j < FIGURE_COLS; j++){
-                if(figure->current_figure[i][j]){ 
-                    if(y >= 0){
-                        if(x - 1 < 0){
-                            status = true;
-                        } else if(game->field[y][x - 1]){
-                                status = true;
-                        }
-                    }
-                }
-                x++;
-            }
-        }
-        y++;
-    }
-    return status;
-}
-
-
+    
 void MoveRight(GameInfo_t* game, FigureInfo_t* figure){
         ClearFigureFromGameField(game, figure);
-        if(!CheckRightSide(game, figure)){
+        if(!CheckCollision(game, figure->current_figure, figure->y, figure->x + 1)){
             figure->x++;
         }
         AddFigureToField(game, figure->current_figure, figure);
@@ -430,11 +359,11 @@ void MoveRight(GameInfo_t* game, FigureInfo_t* figure){
 
 void MoveLeft(GameInfo_t* game, FigureInfo_t* figure){
         ClearFigureFromGameField(game, figure);
-        if(!CheckLeftSide(game, figure)){
+        if(!CheckCollision(game, figure->current_figure, figure->y, figure->x - 1)){
             figure->x--;
         }
         AddFigureToField(game, figure->current_figure, figure);
-    }
+}
 
 
 int IsFilledLine(int** field, int row_num){
@@ -498,7 +427,6 @@ void RotateFigure(GameInfo_t* game, FigureInfo_t* figure){
         default:
             RotateAnotherFigures(game, figure);
             break;
-
     }
 
     AddFigureToField(game, figure->current_figure, figure);
@@ -564,6 +492,21 @@ void RotateAnotherFigures(GameInfo_t* game, FigureInfo_t* figure){
     }
 
 }
+
+void SpawnFigure(MainGameState_t *game_state){
+    if (game_state->figure->next_type == -1) {
+        int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
+        GenerateTetromino(random_num, game_state->game->next);
+        game_state->figure->next_type = random_num;
+    }
+    GenerateNewFigure(game_state);
+    UpdateCurrentFigure(game_state->figure);
+    if(CheckCollision(game_state->game, game_state->figure->current_figure, game_state->figure->y, game_state->figure->x)){
+        game_state->current_state = GameOver;
+    } 
+    AddFigureToField(game_state->game, game_state->figure->current_figure, game_state->figure);
+   
+}
     
 
 void TetrisFsm(MainGameState_t *game_state){
@@ -576,26 +519,20 @@ void TetrisFsm(MainGameState_t *game_state){
             break;
 
         case Spawn:
-            if (game_state->figure->next_type == -1) {
-                int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
-                GenerateTetromino(random_num, game_state->game->next);
-                game_state->figure->next_type = random_num;
-            }
-            GenerateNewFigure(game_state);
-            UpdateCurrentFigure(game_state->figure);
-            if(CheckCollision(game_state->game, game_state->figure->current_figure, game_state->figure->y, game_state->figure->x)){
-                game_state->current_state = GameOver;
-                break;
-            } 
-            AddFigureToField(game_state->game, game_state->figure->current_figure, game_state->figure);
-            game_state->current_state = Moving;
+            SpawnFigure(game_state);
+            game_state->current_state = Moving; 
             break;
 
         case Moving:
-            int status = MoveDown(game_state->game, game_state->figure);
-            if(status == MoveDownCollision){
-                game_state->current_state = Collision;
-            }
+            long int speed = 500 - game_state->game->level * 50;
+            long int diff = GetTimeDiff(game_state);
+            if(diff >= speed){
+                int status = MoveDown(game_state->game, game_state->figure);
+                clock_gettime(CLOCK_MONOTONIC, &game_state->time->start);
+                if(status == MoveDownCollision){
+                    game_state->current_state = Collision;
+                }
+            }    
             break;
 
         case Collision:
@@ -622,7 +559,13 @@ void TetrisFsm(MainGameState_t *game_state){
         default:
             break;
     }
-    
+}
+
+long int GetTimeDiff(MainGameState_t *game_state){
+    clock_gettime(CLOCK_MONOTONIC, &game_state->time->now); 
+    long sec = (game_state->time->now.tv_sec - game_state->time->start.tv_sec) * 1000;
+    long nsec = (game_state->time->now.tv_nsec - game_state->time->start.tv_nsec) / 1000000;
+    return sec + nsec;
 }
 
 void CountStats(int num_filled_lines, MainGameState_t *game_state){  
@@ -646,15 +589,20 @@ void CountStats(int num_filled_lines, MainGameState_t *game_state){
         default:
             break;
     }
-    if(game_state->game->score / 600 <= 10 && game_state->game->score >= 600){
-        game_state->game->level = game_state->game->score / 600 + 1;
+    if(game_state->game->score >= 600 && game_state->game->level < 10){
+        int new_level = game_state->game->score / 600 + 1;
+        if(new_level >= 10){
+            game_state->game->level = 10;
+        } else {
+            game_state->game->level = new_level;
+        }
+        
     }
     if(game_state->game->score > GetRecord()){
         SetRecord(game_state->game->score);
         game_state->game->high_score = GetRecord();
     }
 }
-
 
 
 void FreeMatrix(int** matrix, int row){
@@ -667,6 +615,8 @@ void FreeMatrix(int** matrix, int row){
 }
 
 void TerminateGame(MainGameState_t* game_state){ 
+    free(game_state->time);
+    game_state->time = NULL;
     FreeMatrix(game_state->game->field, FIELD_HEIGHT);
     game_state->game->field = NULL;
     FreeMatrix(game_state->game->next, FIGURE_ROWS);
