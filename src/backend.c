@@ -21,34 +21,37 @@ int GetRecord(){
 }
 
 void userInput(UserAction_t action, bool hold){
+    (void)hold;
     MainGameState_t* game_state = GetMainGameInfo();
     switch(action){
         case Start:
-            if(game_state->current_state == Waiting){;
+            if(game_state->current_state == Waiting){
                 game_state->current_state = Initial;
+            } else if(game_state->current_state == GameOver){
+                ResetParams(game_state);
             }
         break;
         
         case Right:
-            if(game_state->current_state == Moving && (game_state->game->pause == Unpaused)){
+            if(game_state->current_state == Moving && game_state->game->pause == Unpaused && game_state->game->pause != GameOverPause){
                 MoveRight(game_state->game, game_state->figure);
             }
         break;
 
         case Left:
-            if(game_state->current_state == Moving && (game_state->game->pause == Unpaused)){
+            if(game_state->current_state == Moving && game_state->game->pause == Unpaused && game_state->game->pause != GameOverPause){
                 MoveLeft(game_state->game, game_state->figure);
             }    
         break;
 
         case Down:
-            if(game_state->current_state == Moving && (game_state->game->pause == Unpaused)){
+            if(game_state->current_state == Moving && game_state->game->pause == Unpaused && game_state->game->pause != GameOverPause){
                 UserMoveDown(game_state);
             }    
         break;
 
         case Action:
-            if(game_state->game->pause == Unpaused && game_state->current_state == Moving){
+            if(game_state->game->pause == Unpaused && game_state->current_state == Moving && game_state->game->pause != GameOverPause){
                 game_state->current_state = Rotating;
                 RotateFigure(game_state->game, game_state->figure);
                 game_state->current_state = Moving;
@@ -60,7 +63,13 @@ void userInput(UserAction_t action, bool hold){
         break;
 
         case Terminate:
-            game_state->current_state = GameOver;
+            game_state->current_state = GameEnd;
+            game_state->game->pause = QuitGamePause;
+           // EndGame();
+            break; 
+
+        case Up:
+        break;
     }
 }
 
@@ -71,7 +80,12 @@ void UserMoveDown(MainGameState_t* game_state){
 }
 
 void PauseGame(MainGameState_t* game_state){
-    game_state->game->pause = !(game_state->game->pause);
+    if(game_state->game->pause == Unpaused){
+        game_state->game->pause = Paused;
+    } else if (game_state->game->pause == Paused){
+        game_state->game->pause = Unpaused;
+    }
+
     if(game_state->game->pause == Unpaused){
         clock_gettime(CLOCK_MONOTONIC, &game_state->time->start);
     }
@@ -112,8 +126,24 @@ void SetMatrixToZero(int** matrix, int rows, int cols){
     }
 }
 
+void SetStatsToZero(GameInfo_t* game){
+    game->score = 0;
+    game->level = 1;
+}
+
+void ResetParams(MainGameState_t* game_state){
+    SetMatrixToZero(game_state->game->field, FIELD_HEIGHT, FIELD_WIDTH);
+    SetStatsToZero(game_state->game);
+    game_state->current_state = Spawn;
+    game_state->game->pause = Unpaused;
+}
+
 void UpdateCurrentFigure(FigureInfo_t* figure){
-    figure->y = 0;
+    if(figure->current_type == Hero){
+        figure->y = -1;
+    } else {
+        figure->y = 0;
+    }
     figure->x = FIELD_WIDTH / 2 - 2;
     figure->angle = Degree0;
 }
@@ -126,8 +156,8 @@ void InitInfoIfNeed(MainGameState_t* game_state){
         InitFigureIfNeed(game_state); 
         InitRandom();
         game_state->figure->next_type = -1;
-        game_state->game->pause = Unpaused;
-        game_state->game->level = 1;
+        game_state->game->pause = StartPause;
+        game_state->game->level = 10;
         game_state->game->score = 0;
         game_state->game->high_score = GetRecord();
         game_state->time = malloc(sizeof(Timer_t));
@@ -296,7 +326,7 @@ void AddFigureToField(GameInfo_t* game, int** matrix, FigureInfo_t* figure){
         int figure_x = figure->x;
         for(int j = 0; j < FIGURE_COLS; j++){
             if(matrix[i][j] > 0 && figure_y >= 0 && figure_x >= 0){
-                game->field[figure_y][figure_x] = figure->current_type + 1 ;
+                game->field[figure_y][figure_x] = figure->current_type + 1;
             }
             figure_x++;
         }
@@ -503,28 +533,32 @@ void SpawnFigure(MainGameState_t *game_state){
     UpdateCurrentFigure(game_state->figure);
     if(CheckCollision(game_state->game, game_state->figure->current_figure, game_state->figure->y, game_state->figure->x)){
         game_state->current_state = GameOver;
-    } 
-    AddFigureToField(game_state->game, game_state->figure->current_figure, game_state->figure);
+    } else {
+        AddFigureToField(game_state->game, game_state->figure->current_figure, game_state->figure);
+    }
    
 }
     
 
 void TetrisFsm(MainGameState_t *game_state){
-    switch (game_state->current_state){
+        switch (game_state->current_state){
         case Waiting:
             break;
 
         case Initial:
+            game_state->game->pause = Unpaused;
             game_state->current_state = Spawn;
             break;
 
         case Spawn:
             SpawnFigure(game_state);
-            game_state->current_state = Moving; 
+            if (game_state->current_state != GameOver) {
+                game_state->current_state = Moving;
+            }
             break;
 
         case Moving:
-            long int speed = 500 - game_state->game->level * 50;
+            long int speed = 500 - game_state->game->level * 30;
             long int diff = GetTimeDiff(game_state);
             if(diff >= speed){
                 int status = MoveDown(game_state->game, game_state->figure);
@@ -552,13 +586,16 @@ void TetrisFsm(MainGameState_t *game_state){
             break;
 
         case GameOver:
-            // ЗАСТАВКА
             game_state->game->pause = GameOverPause;
+            break;
+
+        case GameEnd:
             break;
 
         default:
             break;
-    }
+        }
+    
 }
 
 long int GetTimeDiff(MainGameState_t *game_state){
@@ -589,7 +626,7 @@ void CountStats(int num_filled_lines, MainGameState_t *game_state){
         default:
             break;
     }
-    if(game_state->game->score >= 600 && game_state->game->level < 10){
+    if(game_state->game->level < 10){
         int new_level = game_state->game->score / 600 + 1;
         if(new_level >= 10){
             game_state->game->level = 10;

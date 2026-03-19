@@ -11,14 +11,12 @@
 #define LIMIT_X 10 
 #define EMPTY_CELL 0
 #define FILLED_CELL 1
-#define KEY_ENTER 10
+//#define KEY_ENTER 10
 #define KEY_PAUSE_LOWER 112
 #define KEY_PAUSE_UPPER 80
 #define KEY_QUIT_UPPER 81
 #define KEY_QUIT_LOWER 113
 #define KEY_SPACE 32
-#define RIGHT 1
-#define LEFT -1
 #include <stdio.h>
 #include <stdlib.h>
 #include <ncurses.h>
@@ -63,7 +61,8 @@ typedef enum{ // СОСТОЯНИЯ ИГРЫ
     Rotating,
     Clearing, 
     Collision,
-    GameOver
+    GameOver,
+    GameEnd
 }GameState_t;
 
 
@@ -73,9 +72,11 @@ typedef enum{ // СОСТОЯНИЯ ИГРЫ
  } MoveResult_t;
 
  typedef enum{
+    StartPause,
     Unpaused,
     Paused, 
-    GameOverPause
+    GameOverPause,
+    QuitGamePause
  } PauseState_t;
 
 typedef struct {
@@ -140,94 +141,5 @@ void TetrisFsm(MainGameState_t *game_state);
 void CountStats(int num_filled_lines, MainGameState_t *game_state);
 void FreeMatrix(int** matrix, int row);
 void TerminateGame(MainGameState_t* game_state);
+void ResetParams(MainGameState_t* game_state);
 void EndGame();
-
-// void userInput(UserAction_t action, bool hold);
-
-
-
-// typedef struct {
-//     GameStatus_t status;     // Текущее состояние игры
-//     GameInfo_t info;         // Информация об игре
-//     FigureInfo_t current;    // Текущая фигура
-//     Figures_t next_figure;   // Следующая фигура (тип)
-// } MainGameState_t; 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// void InitGameInfoIfNeed(MainGameState_t* game_state); 
-// void InitFigureIfNeed(MainGameState_t* game_state);
-// //GameState_t* Initstate();
-// void GenerateNewFigure(MainGameState_t *game_state);
-// void GenerateTetromino(int random_num, int** figure);
-// void GenerateHero(int** current_figure);
-// void GenerateSmashboy(int** current_figure);
-// int MoveDown(GameInfo_t *game, FigureInfo_t* figure);
-// void AddFigureToField(GameInfo_t* game, int** matrix, FigureInfo_t* figure);
-// void ClearFigureFromGameField(GameInfo_t *game, FigureInfo_t *figure);
-// int CheckCollision(GameInfo_t* game, int** matrix, int y, int x);
-// void MoveRight(GameInfo_t* game, FigureInfo_t* figure);
-// void MoveLeft(GameInfo_t* game, FigureInfo_t* figure);
-// int CheckRightSide(GameInfo_t* game, FigureInfo_t* figure);
-// int CheckLeftSide(GameInfo_t* game, FigureInfo_t* figure);
-
-// void UpdateCurrentFigure(FigureInfo_t* figure);
-
-
-// void CopyLine(int **field, int row_num);
-// void MoveLinesDown(int **field, int row_num);
-// int ClearLines(int **field);
-// int IsFilledLine(int **field, int row_num);
-
-
-// void GenerateCleveland(int** current_figure);
-// void SetMatrixToZero(int** matrix, int rows, int cols);
-// void PrintField(GameInfo_t* game);
-// void GenerateSmashboy(int** current_figure);
-// int CheckLeftCollision(FigureInfo_t* figure, GameInfo_t* game);
-
-// void TetrisFsm(MainGameState_t *game_state);
-
-
-// void RotateFigure(GameInfo_t* game, FigureInfo_t* figure);
-// void RotateHero(GameInfo_t* game, FigureInfo_t* figure);
-// void RotateAnotherFigures(GameInfo_t* game, FigureInfo_t* figure);
-
-
