@@ -1,7 +1,7 @@
 #include <check.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "tetris_backend.h"
+#include "brick_game/tetris/tetris_backend.h"
 
 START_TEST(test_init_matrix)
 {

@@ -1,6 +1,6 @@
 # === Компилятор и флаги ===
 CC = gcc
-CFLAGS = -Wall -Werror -Wextra -std=c11 -g -D_POSIX_C_SOURCE=199309L
+CFLAGS = -Wall -Werror -Wextra -std=c11 -D_POSIX_C_SOURCE=199309L
 LDFLAGS = -lncurses
 CHECK_LIBS = -lcheck -lsubunit -lm -lpthread -lrt
 
