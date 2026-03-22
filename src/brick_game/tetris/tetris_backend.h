@@ -1,39 +1,25 @@
-#define FIELD_WIDTH 10
-#define FIELD_HEIGHT 20
-#define GAME_WIN_HEIGHT (FIELD_HEIGHT + FRAME_LINE * 2) // ЧЕК ЗНАЧЕНИЯ 
-#define GAME_WIN_WIDTH (CELL_SIZE * FIELD_WIDTH + FRAME_LINE * 2)  // ЧЕК ЗНАЧЕНИЯ 
-#define FRAME_LINE 1 
-#define CELL_SIZE 3
-#define FIGURE_ROWS 4
-#define FIGURE_COLS 4
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+#include "../../common.h"
+
+#ifndef TETRIS_BACKEND_H
+#define TETRIS_BACKEND_H
+
 #define MAX_NUM_FIGURES 7
 #define LIMIT_Y 20 
 #define LIMIT_X 10 
-#define EMPTY_CELL 0
-#define FILLED_CELL 1
-//#define KEY_ENTER 10
-#define KEY_PAUSE_LOWER 112
-#define KEY_PAUSE_UPPER 80
-#define KEY_QUIT_UPPER 81
-#define KEY_QUIT_LOWER 113
-#define KEY_SPACE 32
-#include <stdio.h>
-#include <stdlib.h>
-#include <ncurses.h>
-#include <time.h>
-#include <unistd.h>
-#include "common.h"
 
-
-// #define PAUSE 'p'
 typedef enum{
-    Hero, // I
-    Smashboy, //O
-    RhodeIsland, //S
-    Cleveland,//Z 
-    OrangeRicky, //L
-    BlueRicky, //J
-    Teewee //T
+    Hero, 
+    Smashboy, 
+    RhodeIsland, 
+    Cleveland, 
+    OrangeRicky, 
+    BlueRicky, 
+    Teewee 
 }Figures_t; 
 
 typedef enum{
@@ -43,7 +29,7 @@ typedef enum{
   Degree270
 }Rotation_angle;
 
-typedef struct { // ИНФО ТЕКУЩАЯ ФИГУРА 
+typedef struct { 
   int** current_figure;
   int x;
   int y;
@@ -53,7 +39,7 @@ typedef struct { // ИНФО ТЕКУЩАЯ ФИГУРА
   Rotation_angle angle;
 }FigureInfo_t;
 
-typedef enum{ // СОСТОЯНИЯ ИГРЫ
+typedef enum{ 
     Waiting,
     Initial,
     Spawn,
@@ -65,19 +51,10 @@ typedef enum{ // СОСТОЯНИЯ ИГРЫ
     GameEnd
 }GameState_t;
 
-
  typedef enum {
     MoveDownOk,
     MoveDownCollision
  } MoveResult_t;
-
- typedef enum{
-    StartPause,
-    Unpaused,
-    Paused, 
-    GameOverPause,
-    QuitGamePause
- } PauseState_t;
 
 typedef struct {
   struct timespec start;
@@ -143,3 +120,5 @@ void FreeMatrix(int** matrix, int row);
 void TerminateGame(MainGameState_t* game_state);
 void ResetParams(MainGameState_t* game_state);
 void EndGame();
+
+#endif

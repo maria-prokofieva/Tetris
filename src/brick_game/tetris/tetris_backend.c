@@ -1,5 +1,5 @@
-#include "backend.h"
-#include "common.h"
+#include "tetris_backend.h"
+#include "../../common.h"
 
 MainGameState_t* GetMainGameInfo() {
     static MainGameState_t game_state = {0};
@@ -30,7 +30,7 @@ void userInput(UserAction_t action, bool hold){
             } else if(game_state->current_state == GameOver){
                 ResetParams(game_state);
             }
-        break;
+            break;
         
         case Right:
             if(game_state->current_state == Moving && game_state->game->pause == Unpaused && game_state->game->pause != GameOverPause){
@@ -65,7 +65,6 @@ void userInput(UserAction_t action, bool hold){
         case Terminate:
             game_state->current_state = GameEnd;
             game_state->game->pause = QuitGamePause;
-           // EndGame();
             break; 
 
         case Up:
@@ -157,7 +156,7 @@ void InitInfoIfNeed(MainGameState_t* game_state){
         InitRandom();
         game_state->figure->next_type = -1;
         game_state->game->pause = StartPause;
-        game_state->game->level = 10;
+        game_state->game->level = 1;
         game_state->game->score = 0;
         game_state->game->high_score = GetRecord();
         game_state->time = malloc(sizeof(Timer_t));
@@ -524,7 +523,7 @@ void RotateAnotherFigures(GameInfo_t* game, FigureInfo_t* figure){
 }
 
 void SpawnFigure(MainGameState_t *game_state){
-    if (game_state->figure->next_type == -1) {
+    if((int)game_state->figure->next_type == -1) {
         int random_num = GenerateRandomNum(MAX_NUM_FIGURES);
         GenerateTetromino(random_num, game_state->game->next);
         game_state->figure->next_type = random_num;
@@ -571,7 +570,6 @@ void TetrisFsm(MainGameState_t *game_state){
 
         case Collision:
             game_state->current_state = Clearing;
-           // UpdateCurrentFigure(game_state->figure);
             break;
     
         case Clearing:
@@ -652,22 +650,44 @@ void FreeMatrix(int** matrix, int row){
 }
 
 void TerminateGame(MainGameState_t* game_state){ 
-    free(game_state->time);
-    game_state->time = NULL;
-    FreeMatrix(game_state->game->field, FIELD_HEIGHT);
-    game_state->game->field = NULL;
-    FreeMatrix(game_state->game->next, FIGURE_ROWS);
-    game_state->game->next = NULL;
-    free(game_state->game);
-    game_state->game = NULL;
-    FreeMatrix(game_state->figure->current_figure, FIGURE_ROWS);
-    game_state->figure->current_figure = NULL;
-    FreeMatrix(game_state->figure->temp_matrix, FIGURE_ROWS);
-    game_state->figure->temp_matrix = NULL;
-    free(game_state->figure);
-    game_state->figure = NULL;
+    if (game_state){
+
+    if (game_state->time) {
+        free(game_state->time);
+        game_state->time = NULL;
+    }
+
+    if (game_state->game) {
+        if (game_state->game->field) {
+            FreeMatrix(game_state->game->field, FIELD_HEIGHT);
+            game_state->game->field = NULL;
+        }
+
+        if (game_state->game->next) {
+            FreeMatrix(game_state->game->next, FIGURE_ROWS);
+            game_state->game->next = NULL;
+        }
+
+        free(game_state->game);
+        game_state->game = NULL;
+    }
+
+    if (game_state->figure) {
+        if (game_state->figure->current_figure) {
+            FreeMatrix(game_state->figure->current_figure, FIGURE_ROWS);
+            game_state->figure->current_figure = NULL;
+        }
+
+        if (game_state->figure->temp_matrix) {
+            FreeMatrix(game_state->figure->temp_matrix, FIGURE_ROWS);
+            game_state->figure->temp_matrix = NULL;
+        }
+
+        free(game_state->figure);
+        game_state->figure = NULL;
+    }
 }
-       
+}    
 void EndGame(){
     MainGameState_t* game_state = GetMainGameInfo();
     TerminateGame(game_state);

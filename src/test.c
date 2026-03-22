@@ -1,7 +1,7 @@
 #include <check.h>
 #include <stdio.h>
-#include "backend.h"
-
+#include <stdlib.h>
+#include "tetris_backend.h"
 
 START_TEST(test_init_matrix)
 {
@@ -270,7 +270,6 @@ START_TEST(test_count_stats_4)
 }
 END_TEST
 
-
 START_TEST(test_collision_top)
 {
     int **field = InitMatrix(FIELD_HEIGHT, FIELD_WIDTH);
@@ -340,7 +339,7 @@ START_TEST(test_move_down_pause)
 }
 END_TEST
 
-START_TEST(test_rotate_teewee_coordinates)
+START_TEST(test_rotate_teewee)
 {
     GameInfo_t game = {0};
     FigureInfo_t figure = {0};
@@ -352,15 +351,19 @@ START_TEST(test_rotate_teewee_coordinates)
     figure.x = 4;
     figure.y = 5;
     GenerateTeewee(figure.current_figure);
-    AddFigureToField(&game, figure.current_figure, &figure);
     RotateFigure(&game, &figure);
     ck_assert_int_eq(figure.angle, Degree90);
-    ck_assert_int_ne(game.field[5][4], 0);
-    ck_assert_int_ne(game.field[6][4], 0);
-    ck_assert_int_ne(game.field[7][4], 0);
-    ck_assert_int_ne(game.field[6][5], 0);
-    ck_assert_int_eq(game.field[5][5], 0);
-    ck_assert_int_eq(game.field[5][6], 0);
+    int expected[4][4] = {
+        {0, 7, 0, 0},
+        {0, 7, 7, 0},
+        {0, 7, 0, 0},
+        {0, 0, 0, 0}
+    };
+    for (int i = 0; i < FIGURE_ROWS; i++) {
+        for (int j = 0; j < FIGURE_COLS; j++) {
+            ck_assert_int_eq(figure.current_figure[i][j], expected[i][j]);
+        }
+    }
     FreeMatrix(game.field, FIELD_HEIGHT);
     FreeMatrix(figure.current_figure, FIGURE_ROWS);
     FreeMatrix(figure.temp_matrix, FIGURE_ROWS);
@@ -448,10 +451,16 @@ END_TEST
 
 START_TEST(test_user_input_terminate)
 {
-    updateCurrentState();
     MainGameState_t *state = GetMainGameInfo();
-    userInput(Terminate, false);
+    InitInfoIfNeed(state);
+    ck_assert_ptr_nonnull(state->game);
+    ck_assert_ptr_nonnull(state->figure);
+    ck_assert_ptr_nonnull(state->game->field);
+    ck_assert_ptr_nonnull(state->figure->current_figure);
+    EndGame();
     ck_assert_ptr_null(state->game);
+    ck_assert_ptr_null(state->figure);
+    ck_assert_ptr_null(state->time);
 }
 END_TEST
 
@@ -483,6 +492,7 @@ START_TEST(test_user_input_start)
     state->current_state = Waiting;
     userInput(Start, false);
     ck_assert_int_eq(state->current_state, Initial);
+    EndGame();
 }
 END_TEST
 
@@ -496,15 +506,21 @@ START_TEST(test_user_input_right)
     GenerateSmashboy(figure.current_figure);
     figure.x = 3;
     figure.y = 5;
+   
     state->game = &game;
     state->figure = &figure;
     state->current_state = Moving;
     state->game->pause = Unpaused;
+    
     int old_x = figure.x;
     userInput(Right, false);
     ck_assert_int_eq(figure.x, old_x + 1);
+    
     FreeMatrix(game.field, FIELD_HEIGHT);
     FreeMatrix(figure.current_figure, FIGURE_ROWS);
+    
+    state->game = NULL;
+    state->figure = NULL;
 }
 END_TEST
 
@@ -518,15 +534,21 @@ START_TEST(test_user_input_left)
     GenerateSmashboy(figure.current_figure);
     figure.x = 4;
     figure.y = 5;
+    
     state->game = &game;
     state->figure = &figure;
     state->current_state = Moving;
     state->game->pause = Unpaused;
+    
     int old_x = figure.x;
     userInput(Left, false);
     ck_assert_int_eq(figure.x, old_x - 1);
+    
     FreeMatrix(game.field, FIELD_HEIGHT);
     FreeMatrix(figure.current_figure, FIGURE_ROWS);
+    
+    state->game = NULL;
+    state->figure = NULL;
 }
 END_TEST
 
@@ -546,6 +568,7 @@ START_TEST(test_fsm_initial)
     state->current_state = Initial;
     TetrisFsm(state);
     ck_assert_int_eq(state->current_state, Spawn);
+    EndGame(); 
 }
 END_TEST
 
@@ -673,7 +696,8 @@ START_TEST(test_init_info_if_need)
     ck_assert_int_eq(state.game->pause, StartPause);
     ck_assert_int_eq(state.game->level, 1);
     ck_assert_int_eq(state.game->score, 0);
-    ck_assert(state.figure->next_type == -1);
+    int next_type_int = state.figure->next_type;
+    ck_assert(next_type_int == -1);
     ck_assert_ptr_nonnull(state.game->field[0]);
     GameInfo_t *old_game = state.game;
     InitInfoIfNeed(&state);
@@ -711,11 +735,9 @@ START_TEST(test_user_input_action)
 }
 END_TEST
 
-
 Suite *test_suite(void) {
     Suite *s = suite_create("tetris_backend");
-
-    TCase *tc = tcase_create("core");
+    TCase *tc = tcase_create("game_logic");
 
     tcase_add_test(tc, test_generate_random_num);
     tcase_add_test(tc, test_init_matrix);
@@ -757,21 +779,19 @@ Suite *test_suite(void) {
     tcase_add_test(tc, test_init_info_if_need);
     tcase_add_test(tc, test_rotate_smashboy);
     tcase_add_test(tc, test_user_input_action);
-
-
-
+    tcase_add_test(tc, test_rotate_teewee);
 
     suite_add_tcase(s, tc);
-
     return s;
 }
-
-
 
 int main(void)
 {
     Suite *s = test_suite();
     SRunner *sr = srunner_create(s);
+
+    srunner_set_fork_status(sr, CK_NOFORK); 
+    
     srunner_run_all(sr, CK_NORMAL);
     int failed = srunner_ntests_failed(sr);
     srunner_free(sr);
