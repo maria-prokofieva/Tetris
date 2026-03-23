@@ -3,6 +3,22 @@
 #include <stdlib.h>
 #include "brick_game/tetris/tetris_backend.h"
 
+START_TEST(test_set_to_zero_matrix)
+{
+    int rows = 2;
+    int cols = 3;
+    int **matrix = InitMatrix(rows, cols);
+    SetMatrixToZero(matrix, rows, cols);
+    for(int i = 0; i < rows; i++){
+        for(int j = 0; j < cols; j++){
+            ck_assert_int_eq(matrix[i][j], 0);
+        }
+    }
+    FreeMatrix(matrix, rows);
+}
+END_TEST
+
+
 START_TEST(test_init_matrix)
 {
     int rows = 2;
@@ -780,6 +796,8 @@ Suite *test_suite(void) {
     tcase_add_test(tc, test_rotate_smashboy);
     tcase_add_test(tc, test_user_input_action);
     tcase_add_test(tc, test_rotate_teewee);
+    tcase_add_test(tc, test_set_to_zero_matrix);
+
 
     suite_add_tcase(s, tc);
     return s;

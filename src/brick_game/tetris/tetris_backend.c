@@ -1,17 +1,43 @@
+/**
+ * @file tetris_backend.c
+ * @brief Backend logic for Tetris game.
+ *
+ * Contains game state management, figure generation,
+ * movement, rotation, collision detection, scoring,
+ * and memory management.
+ */
+
 #include "tetris_backend.h"
 #include "../../common.h"
 
+ /**
+ * @brief Returns pointer to global game state (singleton).
+ * 
+ * @return Pointer to MainGameState_t structure.
+ */
 MainGameState_t* GetMainGameInfo() {
     static MainGameState_t game_state = {0};
     return &game_state;
 }
 
-void SetRecord(int score){
+/**
+ * @brief Saves high score to file.
+ * 
+ * @param score New high score value.
+ */
+void SetRecord(int score) {
     FILE *file = fopen("record.txt", "w");
-    fprintf(file, "%d", score);
-    fclose(file);
+    if (file != NULL) {
+        fprintf(file, "%d", score);
+        fclose(file);
+    }
 }
 
+/**
+ * @brief Saves high score to file.
+ * 
+ * @param score New high score value.
+ */
 int GetRecord(){
     int score = 0;
     FILE *file = fopen("record.txt", "r");
@@ -20,6 +46,12 @@ int GetRecord(){
     return score;
 }
 
+/**
+ * @brief Handles user input and updates game state.
+ * 
+ * @param action User action (move, rotate, pause, etc.)
+ * @param hold   Whether key is held (unused).
+ */
 void userInput(UserAction_t action, bool hold){
     (void)hold;
     MainGameState_t* game_state = GetMainGameInfo();
@@ -72,12 +104,28 @@ void userInput(UserAction_t action, bool hold){
     }
 }
 
+/**
+ * @brief Drops the current figure to the bottom.
+ *
+ * Moves the figure down until a collision occurs.
+ * If collision is reached, updates game state to Collision.
+ *
+ * @param game_state Pointer to main game state.
+ */
 void UserMoveDown(MainGameState_t* game_state){
     if(MoveDownToTheEnd(game_state->game, game_state->figure) == MoveDownCollision){
         game_state->current_state = Collision;
     }
 }
 
+/**
+ * @brief Toggles pause state of the game.
+ *
+ * Switches between Paused and Unpaused states.
+ * When unpausing, resets the game timer.
+ *
+ * @param game_state Pointer to main game state.
+ */
 void PauseGame(MainGameState_t* game_state){
     if(game_state->game->pause == Unpaused){
         game_state->game->pause = Paused;
@@ -90,9 +138,21 @@ void PauseGame(MainGameState_t* game_state){
     }
 }
 
+/**
+ * @brief Initializes random number generator.
+ *
+ * Seeds RNG using current system time.
+ * Should be called once before random generation.
+ */
 void InitRandom(){
     srand(time(NULL));
 }
+
+/**
+ * @brief Updates current game state (FSM tick).
+ * 
+ * @return Current GameInfo_t snapshot.
+ */
 
 GameInfo_t updateCurrentState(){
     MainGameState_t* game_state = GetMainGameInfo();
@@ -106,6 +166,12 @@ int GenerateRandomNum(int max_num){
     return random_num;
 }
 
+/**
+ * @brief Updates current game state (FSM tick).
+ * 
+ * @return Current GameInfo_t snapshot.
+ */
+
 int** InitMatrix(int rows, int cols){
     int** matrix = malloc(rows * sizeof(int*));
     for(int i = 0; i < rows; i++){
@@ -116,6 +182,10 @@ int** InitMatrix(int rows, int cols){
     }
     return matrix;
 }
+
+/**
+ * @brief Sets matrix values to zero.
+ */
 
 void SetMatrixToZero(int** matrix, int rows, int cols){
     for(int i = 0; i < rows; i++){
@@ -254,6 +324,13 @@ void GenerateTeewee(int** current_figure){
     };
     CopyStaticMatrixToDynamic(FIGURE_ROWS, FIGURE_COLS, current_figure, teewee_matrix);
 }
+
+/**
+ * @brief Generates tetromino of given type.
+ * 
+ * @param random_num Figure type.
+ * @param figure Target matrix.
+ */
 
 void GenerateTetromino(int random_num, int** figure){ 
     switch (random_num){
