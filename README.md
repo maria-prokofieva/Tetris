@@ -4,7 +4,7 @@
 
 Данный проект представляет собой реализацию консольной игры **Tetris (BrickGame v1.0)** на языке C (стандарт C11).
 
-![game](./images/0922.gif)
+![game](src/images/0922.gif)
 
 Программа разделена на:
 
@@ -185,7 +185,7 @@ make dist
 - GameOver
 - GameEnd
 
-![Диаграмма конечного автомата](./images/tetris_fsm_diagram.jpg)
+![Диаграмма конечного автомата](src/images/tetris_fsm_diagram.jpg)
 
 ---
 
